@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dev Prompt Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e14;
+    --bg-2:#0e131b;
+    --panel:#111824;
+    --panel-2:#15202e;
+    --line:#1f2c3d;
+    --line-soft:#192431;
+    --ink:#e6eef7;
+    --ink-dim:#9aabbf;
+    --ink-faint:#62758c;
+    --cyan:#3ddbd9;
+    --cyan-soft:#7ef0ee;
+    --cyan-deep:#1ba9a7;
+    --amber:#f5b454;
+    --rose:#f47174;
+    --violet:#9d8cf0;
+    --radius:13px;
+    --radius-sm:8px;
+    --shadow:0 28px 60px -30px rgba(0,0,0,.85);
+    --display:'Bricolage Grotesque',system-ui,sans-serif;
+    --body:'IBM Plex Sans',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.55;
+    -webkit-font-smoothing:antialiased;min-height:100vh;position:relative;overflow-x:hidden;
+  }
+  /* blueprint grid + glows */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(61,219,217,.035) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(61,219,217,.035) 1px,transparent 1px);
+    background-size:34px 34px;
+    -webkit-mask-image:radial-gradient(circle at 50% 0%, #000 60%, transparent 100%);
+    mask-image:radial-gradient(circle at 50% 0%, #000 60%, transparent 100%);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(800px 500px at 8% -8%, rgba(61,219,217,.12), transparent 60%),
+      radial-gradient(700px 600px at 100% 12%, rgba(157,140,240,.08), transparent 55%);
+  }
+  .wrap{position:relative;z-index:1;max-width:1340px;margin:0 auto;padding:0 22px 120px}
+
+  header.top{padding:40px 0 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+  .brand{display:flex;flex-direction:column;gap:5px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--cyan-soft);display:flex;align-items:center;gap:9px}
+  .eyebrow .dot{width:6px;height:6px;border-radius:1px;background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,4.6vw,50px);line-height:.98;margin:3px 0 0;letter-spacing:-.02em}
+  h1 em{font-style:normal;color:var(--cyan)}
+  .tagline{color:var(--ink-dim);max-width:50ch;font-size:14.5px;margin-top:8px}
+  .header-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+
+  .modeswitch{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px;font-family:var(--mono);font-size:12px}
+  .modeswitch button{border:none;background:none;color:var(--ink-faint);padding:7px 14px;border-radius:999px;cursor:pointer;font-family:var(--mono);font-size:12px;transition:.18s}
+  .modeswitch button.on{background:var(--cyan);color:#06231f;font-weight:700}
+
+  .btn{font-family:var(--body);font-weight:600;font-size:13px;border-radius:var(--radius-sm);padding:10px 15px;cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);display:inline-flex;align-items:center;gap:7px;transition:.16s;white-space:nowrap}
+  .btn:hover{border-color:var(--cyan-deep);transform:translateY(-1px)}
+  .btn.accent{background:linear-gradient(180deg,var(--cyan),var(--cyan-deep));border-color:var(--cyan-deep);color:#062320}
+  .btn.accent:hover{filter:brightness(1.07)}
+  .btn.ghost{background:transparent}
+  .btn svg{width:15px;height:15px}
+
+  /* template rail */
+  .rail{display:grid;grid-template-columns:repeat(auto-fill,minmax(156px,1fr));gap:9px;margin-bottom:24px;animation:rise .6s .05s cubic-bezier(.2,.8,.2,1) both}
+  .tpl{text-align:left;cursor:pointer;border:1px solid var(--line-soft);background:linear-gradient(160deg,var(--panel),var(--bg-2));border-radius:var(--radius);padding:13px 14px;transition:.18s;position:relative}
+  .tpl:hover{border-color:var(--cyan-deep);transform:translateY(-2px)}
+  .tpl.active{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset, 0 0 22px -8px var(--cyan)}
+  .tpl .em{font-size:19px;line-height:1}
+  .tpl .nm{font-weight:600;font-size:13.5px;margin-top:7px;letter-spacing:-.01em}
+  .tpl .bl{font-size:11px;color:var(--ink-faint);margin-top:2px;line-height:1.35}
+
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:start}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+
+  .card{background:linear-gradient(170deg,var(--panel),var(--bg-2));border:1px solid var(--line-soft);border-radius:var(--radius);padding:20px 20px 22px;animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+  .form-head{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .form-head .em{font-size:22px}
+  .form-head h2{font-family:var(--display);font-weight:600;font-size:21px;margin:0;letter-spacing:-.01em}
+  .form-head .clearbtn{margin-left:auto;background:none;border:none;color:var(--ink-faint);font-family:var(--mono);font-size:11px;cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
+  .form-head .clearbtn:hover{color:var(--cyan-soft)}
+  .form-sub{color:var(--ink-dim);font-size:13px;margin:0 0 18px;border-bottom:1px solid var(--line-soft);padding-bottom:14px}
+
+  .field{margin-bottom:16px}
+  .field:last-child{margin-bottom:0}
+  .flabel{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+  .flabel b{font-size:12px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.07em}
+  .flabel .req{color:var(--cyan);font-size:10px}
+  .flabel .hint{font-size:11.5px;color:var(--ink-faint)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid var(--line-soft);background:rgba(255,255,255,.015);color:var(--ink-dim);transition:.15s;user-select:none;line-height:1.2;font-family:var(--mono)}
+  .chip:hover{border-color:var(--cyan-deep);color:var(--ink)}
+  .chip.sel{background:linear-gradient(180deg,rgba(61,219,217,.2),rgba(61,219,217,.08));border-color:var(--cyan);color:#fff;box-shadow:0 3px 12px -7px var(--cyan)}
+  .chip.custom-chip{border-style:dashed;color:var(--cyan-soft)}
+
+  input.t,textarea.t,input.custom-in,input.multi-add{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;color:var(--ink);font-family:var(--body);font-size:13.5px;transition:.15s}
+  textarea.t{min-height:84px;resize:vertical;font-family:var(--mono);font-size:12.5px;line-height:1.55}
+  input.t:focus,textarea.t:focus,input.custom-in:focus,input.multi-add:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(61,219,217,.13)}
+  input.custom-in{margin-top:8px;display:none}
+  input.custom-in.show{display:block;animation:fade .2s}
+  input.multi-add{margin-top:8px;font-family:var(--mono);font-size:12px}
+
+  /* preview */
+  .preview-col{position:sticky;top:18px;animation:rise .6s .2s cubic-bezier(.2,.8,.2,1) both}
+  @media(max-width:980px){.preview-col{position:static}}
+  .preview{background:linear-gradient(170deg,#0c1219,#080c12);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .pv-head{display:flex;align-items:center;gap:8px;padding:12px 15px;border-bottom:1px solid var(--line-soft);background:rgba(0,0,0,.25)}
+  .pv-dots{display:flex;gap:6px;margin-right:4px}
+  .pv-dots i{width:9px;height:9px;border-radius:50%;display:block}
+  .pv-dots i:nth-child(1){background:var(--rose)}.pv-dots i:nth-child(2){background:var(--amber)}.pv-dots i:nth-child(3){background:var(--cyan)}
+  .pv-title{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+  .pv-stat{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-faint)}
+  .pv-body{padding:17px;max-height:62vh;overflow:auto;font-family:var(--mono);font-size:12px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:var(--ink-dim)}
+  .pv-body::-webkit-scrollbar{width:8px}.pv-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+  .pv-body .head{color:var(--cyan);font-weight:700;letter-spacing:.04em}
+  .pv-body .ph{color:var(--amber);opacity:.85}
+  .pv-body .fence{color:var(--violet)}
+  .pv-body.flash{animation:flash .5s ease}
+  .pv-actions{display:flex;gap:8px;padding:13px 15px;border-top:1px solid var(--line-soft);flex-wrap:wrap}
+  .pv-actions .btn{flex:1;justify-content:center}
+
+  .saved-wrap{margin-top:15px}
+  .saved-list{display:flex;flex-direction:column;gap:6px;margin-top:9px}
+  .saved-item{display:flex;align-items:center;gap:9px;background:var(--panel-2);border:1px solid var(--line-soft);border-radius:8px;padding:8px 11px;font-size:12.5px}
+  .saved-item .stag{font-family:var(--mono);font-size:14px}
+  .saved-item .nm{flex:1;font-weight:500;cursor:pointer}
+  .saved-item .nm:hover{color:var(--cyan-soft)}
+  .saved-item button{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:11px;font-family:var(--mono)}
+  .saved-item button:hover{color:var(--cyan-soft)}
+  .saved-item button.del:hover{color:var(--rose)}
+  .empty{color:var(--ink-faint);font-size:12px;font-style:italic}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--cyan);color:#062320;font-weight:700;font-size:13px;padding:11px 22px;border-radius:999px;box-shadow:0 12px 30px -8px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.3s cubic-bezier(.2,.8,.2,1);z-index:50;font-family:var(--mono)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  footer{text-align:center;color:var(--ink-faint);font-size:12px;margin-top:38px;font-family:var(--mono)}
+
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes flash{0%{background:rgba(61,219,217,.07)}100%{background:transparent}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow"><span class="dot"></span>Dev Prompt Studio</div>
+      <h1>Ship better prompts for <em>real engineering work.</em></h1>
+      <p class="tagline">Pick a task, fill the fields, copy a clean, model-agnostic prompt. Switch to Quick mode when you just need the essentials — Guided when you want the full structure.</p>
+    </div>
+    <div class="header-actions">
+      <div class="modeswitch" id="modeSwitch">
+        <button data-mode="guided" class="on">Guided</button>
+        <button data-mode="quick">Quick</button>
+      </div>
+      <button class="btn accent" id="copyTopBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy prompt
+      </button>
+    </div>
+  </header>
+
+  <div class="rail" id="rail"></div>
+
+  <div class="grid">
+    <div class="card" id="formCard">
+      <div class="form-head">
+        <span class="em" id="fhEmoji"></span>
+        <h2 id="fhTitle"></h2>
+        <button class="clearbtn" id="clearBtn">clear fields</button>
+      </div>
+      <p class="form-sub" id="fhSub"></p>
+      <div id="fields"></div>
+    </div>
+
+    <div class="preview-col">
+      <div class="preview">
+        <div class="pv-head">
+          <span class="pv-dots"><i></i><i></i><i></i></span>
+          <span class="pv-title" id="pvTitle">prompt.md</span>
+          <span class="pv-stat" id="pvStat"></span>
+        </div>
+        <div class="pv-body" id="pvBody"></div>
+        <div class="pv-actions">
+          <button class="btn accent" id="copyBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
+          <button class="btn" id="downloadBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            .md
+          </button>
+          <button class="btn" id="saveBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            Save
+          </button>
+        </div>
+      </div>
+
+      <div class="card saved-wrap" style="margin-top:15px;animation:none">
+        <div class="form-head" style="margin-bottom:4px"><span class="em">⤓</span><h2 style="font-size:18px">Saved presets</h2></div>
+        <div class="saved-list" id="savedList"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>built with care and love by Biswa</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- safe storage ---------- */
+const Store=(()=>{let ok=false;try{localStorage.setItem('__t','1');localStorage.removeItem('__t');ok=true}catch(e){}
+  return{get(k,d){if(!ok)return d;try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+         set(k,v){if(!ok)return;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};})();
+
+/* ---------- helpers for building prompts ---------- */
+const P=(v,p)=>{const s=(v==null?'':String(v)).trim();return s?s:'['+p+']';};       // core: value or [placeholder]
+const O=v=>{const s=(v==null?'':String(v)).trim();return s;};                        // optional raw
+const A=v=>Array.isArray(v)?v.filter(Boolean):[];                                    // array
+const L=v=>A(v).join(', ');                                                          // array joined
+function sec(title,body){return body&&body.trim()?(title+'\n'+body.trim()+'\n\n'):'';}
+function fence(lang,code){return '```'+(lang||'')+'\n'+code+'\n```';}
+
+/* ---------- field types: chips | multi | text | area ---------- */
+/* each field: {key,label,type,opts?,hint?,placeholder?,core} */
+const LANGS=['Python','TypeScript','JavaScript','Java','Go','Rust','SQL','Bash','C++','Other'];
+
+const TEMPLATES=[
+ {id:'debug',em:'🐞',name:'Debug an error',bl:'Find & fix a failing piece of code',
+  sub:'Turn an error + code into a precise debugging request.',
+  fields:[
+   {key:'lang',label:'Language',type:'chips',opts:LANGS,core:true},
+   {key:'goal',label:'What you\u2019re trying to do',type:'text',placeholder:'e.g. parse the SCB deviation CSV into a daily heatmap',core:true},
+   {key:'error',label:'Error / symptoms',type:'area',hint:'paste the message or stack trace',placeholder:'TypeError: ...',core:true},
+   {key:'code',label:'Relevant code',type:'area',placeholder:'paste the function or block',core:true},
+   {key:'tried',label:'Already tried',type:'area',core:false},
+   {key:'env',label:'Environment',type:'text',hint:'runtime / versions / OS',core:false},
+   {key:'depth',label:'What you need',type:'chips',opts:['Just the fix','Fix + why','Root-cause analysis','Step-by-step'],core:false},
+  ],
+  build(v){const dmap={'Just the fix':'Give me the corrected code only, with minimal commentary.','Fix + why':'Give the corrected code and briefly explain what was wrong.','Root-cause analysis':'Walk through the root cause step by step, then give the corrected code.','Step-by-step':'Diagnose this step by step, then provide the fix.'};
+   let s='You are an expert '+P(v.lang,'language')+' engineer helping me debug an issue.\n\n';
+   s+=sec('## GOAL','What I\u2019m trying to do: '+P(v.goal,'describe what you\u2019re trying to achieve'));
+   s+=sec('## ERROR / SYMPTOMS',P(v.error,'paste the error message or stack trace'));
+   s+=sec('## RELEVANT CODE',fence(O(v.lang).toLowerCase(),P(v.code,'paste the relevant code')));
+   s+=sec('## ALREADY TRIED',O(v.tried));
+   s+=sec('## ENVIRONMENT',O(v.env));
+   s+='## WHAT I NEED\n'+(dmap[v.depth]||'Identify the root cause and give the corrected code with a short explanation.')+'\nPoint to the exact line(s) and don\u2019t change unrelated logic.';
+   return s;}},
+
+ {id:'review',em:'🔍',name:'Review my code',bl:'Get a focused, actionable code review',
+  sub:'Get a sharp review scoped to what you actually care about.',
+  fields:[
+   {key:'lang',label:'Language',type:'chips',opts:LANGS,core:true},
+   {key:'code',label:'Code to review',type:'area',placeholder:'paste the code / diff',core:true},
+   {key:'focus',label:'Focus areas',type:'multi',opts:['Bugs','Performance','Security','Readability','Best practices','Edge cases','Naming','Tests'],core:true},
+   {key:'standards',label:'Conventions to follow',type:'text',hint:'style guide / team rules',core:false},
+   {key:'severity',label:'How strict',type:'chips',opts:['Flag everything','Only important','Blocking issues only'],core:false},
+   {key:'format',label:'Output format',type:'chips',opts:['Grouped by severity','Inline comments','Summary + list','Rewritten code'],core:false},
+  ],
+  build(v){let s='You are a senior '+P(v.lang,'language')+' engineer doing a code review. Be direct and specific \u2014 no filler praise.\n\n';
+   s+=sec('## CODE',fence(O(v.lang).toLowerCase(),P(v.code,'paste the code to review')));
+   const f=L(v.focus);s+=sec('## FOCUS ON',f?f:'[bugs, performance, readability, edge cases]');
+   s+=sec('## CONVENTIONS',O(v.standards));
+   s+=sec('## STRICTNESS',O(v.severity));
+   s+='## OUTPUT\n'+(O(v.format)||'Group findings by severity (Critical / Important / Minor).')+'\nFor each issue: what, why it matters, and the concrete fix. Cite line references where possible.';
+   return s;}},
+
+ {id:'bug',em:'📋',name:'Bug report / handoff',bl:'Write a clean spec for a developer',
+  sub:'Generate a structured bug report or dev-handoff spec.',
+  fields:[
+   {key:'title',label:'Title',type:'text',placeholder:'e.g. SCB heatmap renders wrong 10-day rolling window',core:true},
+   {key:'summary',label:'What\u2019s wrong',type:'area',placeholder:'one or two sentences',core:true},
+   {key:'steps',label:'Steps to reproduce',type:'area',placeholder:'1. ...\n2. ...',core:true},
+   {key:'expected',label:'Expected',type:'text',core:true},
+   {key:'actual',label:'Actual',type:'text',core:true},
+   {key:'area',label:'Component / page',type:'text',core:false},
+   {key:'severity',label:'Severity',type:'chips',opts:['Critical','High','Medium','Low'],core:false},
+   {key:'env',label:'Environment',type:'text',hint:'browser / build / data range',core:false},
+   {key:'extras',label:'Include',type:'multi',opts:['Acceptance criteria','Suggested fix','Logs referenced','Screenshots referenced','Impact / blast radius'],core:false},
+  ],
+  build(v){let s='Write this up as a clear, well-structured bug report / developer handoff. Keep it concise and unambiguous so an engineer can act on it without follow-up questions.\n\n';
+   s+='# '+P(v.title,'short descriptive title')+'\n\n';
+   s+=sec('## Summary',P(v.summary,'what is wrong'));
+   if(O(v.severity)||O(v.area)){s+='## Meta\n'+(O(v.severity)?'- Severity: '+v.severity+'\n':'')+(O(v.area)?'- Area: '+v.area+'\n':'')+(O(v.env)?'- Environment: '+v.env+'\n':'')+'\n';}
+   else s+=sec('## Environment',O(v.env));
+   s+=sec('## Steps to reproduce',P(v.steps,'numbered steps'));
+   s+=sec('## Expected',P(v.expected,'what should happen'));
+   s+=sec('## Actual',P(v.actual,'what actually happens'));
+   A(v.extras).forEach(x=>{const m={'Acceptance criteria':'## Acceptance criteria\n[checklist of what \u201cfixed\u201d means]','Suggested fix':'## Suggested fix\n[your hypothesis]','Logs referenced':'## Logs\n[paste relevant logs]','Screenshots referenced':'## Screenshots\n[attach / describe]','Impact / blast radius':'## Impact\n[who/what is affected]'};s+=m[x]+'\n\n';});
+   s+='---\nClean up wording, keep my facts intact, and flag anything ambiguous I should clarify.';
+   return s;}},
+
+ {id:'build',em:'⚙️',name:'Generate / refactor',bl:'Write new code or improve existing',
+  sub:'Specify exactly what to build, refactor, or optimize.',
+  fields:[
+   {key:'lang',label:'Language',type:'chips',opts:LANGS,core:true},
+   {key:'mode',label:'Mode',type:'chips',opts:['Write new','Refactor','Optimize','Convert','Add feature'],core:true},
+   {key:'task',label:'What to do',type:'area',placeholder:'describe the function / change you want',core:true},
+   {key:'input',label:'Existing code',type:'area',hint:'if refactoring/optimizing',core:false},
+   {key:'constraints',label:'Requirements & constraints',type:'area',hint:'libs, style, perf, no external deps...',core:false},
+   {key:'output',label:'Deliver',type:'chips',opts:['Code only','Code + comments','Code + tests','Code + explanation'],core:false},
+  ],
+  build(v){let s='You are an expert '+P(v.lang,'language')+' engineer. Write clean, production-quality, idiomatic code.\n\n';
+   s+=sec('## TASK','['+P(v.mode,'Write new')+'] '+P(v.task,'describe what you want built or changed'));
+   s+=sec('## EXISTING CODE',O(v.input)?fence(O(v.lang).toLowerCase(),v.input):'');
+   s+=sec('## CONSTRAINTS',O(v.constraints));
+   s+='## OUTPUT\n'+(O(v.output)||'Provide the code with brief inline comments.')+'\nState any assumptions you make, and keep it minimal \u2014 no over-engineering.';
+   return s;}},
+
+ {id:'docs',em:'📖',name:'Technical docs',bl:'README, docstrings, API docs',
+  sub:'Generate documentation pitched at the right audience.',
+  fields:[
+   {key:'docType',label:'Doc type',type:'chips',opts:['README','Docstrings','API docs','Inline comments','Architecture doc','Runbook'],core:true},
+   {key:'subject',label:'Code / feature to document',type:'area',placeholder:'paste code or describe the feature',core:true},
+   {key:'audience',label:'Audience',type:'chips',opts:['Teammates','New joiners','External devs','Future me'],core:true},
+   {key:'tone',label:'Tone',type:'chips',opts:['Concise','Detailed','Tutorial-style'],core:false},
+   {key:'include',label:'Must include',type:'multi',opts:['Setup steps','Usage examples','Params & returns','Edge cases','Config / env vars','Diagram suggestions'],core:false},
+  ],
+  build(v){let s='Write '+P(v.docType,'documentation')+' for the following, written for '+P(v.audience,'the reader')+'. '+(O(v.tone)?O(v.tone)+'. ':'')+'Be accurate \u2014 do not invent behavior that isn\u2019t in the code.\n\n';
+   s+=sec('## SUBJECT',P(v.subject,'paste the code or describe the feature'));
+   const inc=L(v.include);s+=sec('## MUST INCLUDE',inc);
+   s+='## OUTPUT\nReturn clean Markdown ready to paste in. Use real, runnable examples where relevant.';
+   return s;}},
+
+ {id:'data',em:'📊',name:'Data analysis',bl:'Profile, clean & analyze a dataset',
+  sub:'Frame a data task with the dataset, goal, and tooling.',
+  fields:[
+   {key:'data',label:'The data',type:'area',hint:'describe it, or paste schema / sample rows',placeholder:'columns: timestamp, scb_id, deviation_pct ...',core:true},
+   {key:'goal',label:'What you want to find out',type:'area',placeholder:'e.g. which CMB units show persistent zero-deviation',core:true},
+   {key:'task',label:'Tasks',type:'multi',opts:['Profile / clean','Find anomalies','Summary stats','Correlations','Visualize','Compare groups','Time-series trends'],core:true},
+   {key:'tool',label:'Tool',type:'chips',opts:['pandas','SQL','Polars','Excel','Any'],core:false},
+   {key:'constraints',label:'Constraints / notes',type:'text',core:false},
+   {key:'output',label:'Output',type:'chips',opts:['Code + results','Findings only','Code + explanation'],core:false},
+  ],
+  build(v){let s='You are a careful data analyst. Be rigorous: state assumptions, watch for data-quality issues, and don\u2019t over-claim from limited data.\n\n';
+   s+=sec('## DATASET',P(v.data,'describe the dataset, schema, or paste a sample'));
+   s+=sec('## OBJECTIVE',P(v.goal,'what you want to learn'));
+   const t=L(v.task);s+=sec('## TASKS',t?t:'[profile, summary stats, find anomalies]');
+   s+=sec('## TOOL',O(v.tool)?'Use '+v.tool+'.':'');
+   s+=sec('## CONSTRAINTS',O(v.constraints));
+   s+='## OUTPUT\n'+(O(v.output)||'Provide the analysis code plus a short interpretation of the results.')+'\nCall out any caveats or data issues you notice.';
+   return s;}},
+
+ {id:'arch',em:'🏗️',name:'System design',bl:'Architect a system or feature',
+  sub:'Lay out requirements and get a reasoned design.',
+  fields:[
+   {key:'system',label:'What you\u2019re designing',type:'area',placeholder:'e.g. multi-agent orchestration for solar fault triage',core:true},
+   {key:'reqs',label:'Requirements',type:'area',hint:'functional + non-functional',placeholder:'must handle X req/s, low latency, auditable...',core:true},
+   {key:'scale',label:'Scale',type:'chips',opts:['Prototype','Small','Medium','Large-scale'],core:true},
+   {key:'stack',label:'Preferred stack',type:'text',hint:'languages, cloud, datastores',core:false},
+   {key:'constraints',label:'Constraints',type:'text',hint:'budget / latency / compliance',core:false},
+   {key:'deliver',label:'Deliver',type:'multi',opts:['Component overview','Data flow','Trade-offs','Tech choices + why','Risks','Phased rollout plan'],core:false},
+  ],
+  build(v){let s='You are a pragmatic staff engineer / architect. Favor simple, proven designs over clever ones. Justify decisions and surface trade-offs honestly.\n\n';
+   s+=sec('## SYSTEM',P(v.system,'what you\u2019re designing'));
+   s+=sec('## REQUIREMENTS',P(v.reqs,'functional and non-functional requirements'));
+   s+=sec('## SCALE',O(v.scale));
+   s+=sec('## PREFERRED STACK',O(v.stack));
+   s+=sec('## CONSTRAINTS',O(v.constraints));
+   const d=L(v.deliver);s+=sec('## DELIVER',d?d:'[component overview, data flow, key trade-offs, risks]');
+   s+='## OUTPUT\nWalk through the design, name the main components and how they interact, and list 2\u20133 alternatives you rejected and why.';
+   return s;}},
+
+ {id:'tests',em:'🧪',name:'Write tests',bl:'Generate a meaningful test suite',
+  sub:'Get tests that actually cover the risky paths.',
+  fields:[
+   {key:'lang',label:'Language',type:'chips',opts:LANGS,core:true},
+   {key:'code',label:'Code to test',type:'area',placeholder:'paste the function / module',core:true},
+   {key:'types',label:'Test types',type:'multi',opts:['Unit','Integration','Edge cases','Error handling','Mocks / stubs','Property-based'],core:true},
+   {key:'framework',label:'Framework',type:'text',hint:'pytest / jest / vitest / go test...',core:false},
+   {key:'coverage',label:'Coverage',type:'chips',opts:['Happy path','Thorough','Exhaustive'],core:false},
+  ],
+  build(v){let s='You are a test-focused '+P(v.lang,'language')+' engineer. Write tests that catch real bugs \u2014 prioritize edge cases and failure modes over trivial assertions.\n\n';
+   s+=sec('## CODE UNDER TEST',fence(O(v.lang).toLowerCase(),P(v.code,'paste the code to test')));
+   const t=L(v.types);s+=sec('## TEST TYPES',t?t:'[unit, edge cases, error handling]');
+   s+=sec('## FRAMEWORK',O(v.framework)?'Use '+v.framework+'.':'');
+   s+=sec('## COVERAGE',O(v.coverage));
+   s+='## OUTPUT\nReturn complete, runnable tests with clear names that describe the scenario. Note any cases you couldn\u2019t cover and why.';
+   return s;}},
+
+ {id:'explain',em:'💡',name:'Explain / learn',bl:'Understand code or a concept',
+  sub:'Ask for an explanation at exactly your level.',
+  fields:[
+   {key:'subject',label:'Code or concept',type:'area',placeholder:'paste code, or name the concept (e.g. GraphRAG retrieval)',core:true},
+   {key:'level',label:'Your level',type:'chips',opts:['ELI5','Beginner','Intermediate','Expert'],core:true},
+   {key:'focus',label:'What to clarify',type:'text',hint:'the specific part that\u2019s fuzzy',core:true},
+   {key:'format',label:'Format',type:'chips',opts:['Plain explanation','Step-by-step','With analogies','With examples'],core:false},
+   {key:'depth',label:'Depth',type:'chips',opts:['Quick overview','Deep dive'],core:false},
+  ],
+  build(v){let s='Explain the following clearly at a '+P(v.level,'intermediate')+' level. Be accurate; if something is genuinely complex, say so rather than oversimplifying into something wrong.\n\n';
+   s+=sec('## SUBJECT',P(v.subject,'paste code or name the concept'));
+   s+=sec('## CLARIFY SPECIFICALLY',O(v.focus));
+   const fmt=[O(v.format),O(v.depth)].filter(Boolean).join(', ');
+   s+=sec('## STYLE',fmt);
+   s+='## OUTPUT\nLead with the core idea in one or two sentences, then expand. End by checking my likely misconception about this.';
+   return s;}},
+];
+
+/* ---------- state ---------- */
+let mode = Store.get('dps_mode','guided');
+let activeId = Store.get('dps_active', TEMPLATES[0].id);
+if(!TEMPLATES.find(t=>t.id===activeId)) activeId=TEMPLATES[0].id;
+const values = Store.get('dps_values', {});   // {tplId:{key:val}}
+TEMPLATES.forEach(t=>{ if(!values[t.id]) values[t.id]={}; });
+function persist(){ Store.set('dps_values',values); Store.set('dps_mode',mode); Store.set('dps_active',activeId); }
+const tpl = ()=>TEMPLATES.find(t=>t.id===activeId);
+const cur = ()=>values[activeId];
+
+/* ---------- render rail ---------- */
+function renderRail(){
+  document.getElementById('rail').innerHTML = TEMPLATES.map(t=>`
+    <div class="tpl${t.id===activeId?' active':''}" data-tpl="${t.id}">
+      <div class="em">${t.em}</div>
+      <div class="nm">${t.name}</div>
+      <div class="bl">${t.bl}</div>
+    </div>`).join('');
+}
+
+/* ---------- render fields ---------- */
+function fieldHTML(f){
+  const v=cur()[f.key];
+  const reqStar = f.core? '<span class="req">required</span>':'';
+  const hint = f.hint? `<span class="hint">${f.hint}</span>`:'';
+  let inner='';
+  if(f.type==='chips'){
+    const isCustom = v && !f.opts.includes(v);
+    inner='<div class="chips">'+f.opts.map(o=>`<span class="chip${v===o?' sel':''}" data-k="${f.key}" data-v="${esc(o)}">${o}</span>`).join('')
+      +`<span class="chip custom-chip${isCustom?' sel':''}" data-custom="${f.key}">+ custom</span></div>`
+      +`<input class="custom-in${isCustom?' show':''}" data-cin="${f.key}" placeholder="custom value\u2026" value="${isCustom?esc(v):''}">`;
+  }else if(f.type==='multi'){
+    const arr=A(v);
+    const presets = f.opts.map(o=>`<span class="chip${arr.includes(o)?' sel':''}" data-mk="${f.key}" data-mv="${esc(o)}">${o}</span>`).join('');
+    const extra = arr.filter(x=>!f.opts.includes(x)).map(o=>`<span class="chip sel" data-mk="${f.key}" data-mv="${esc(o)}">${o} \u00d7</span>`).join('');
+    inner='<div class="chips">'+presets+extra+'</div><input class="multi-add" data-madd="'+f.key+'" placeholder="+ add your own, then Enter">';
+  }else if(f.type==='text'){
+    inner=`<input class="t" data-k="${f.key}" value="${esc(v||'')}" placeholder="${esc(f.placeholder||'')}">`;
+  }else if(f.type==='area'){
+    inner=`<textarea class="t" data-k="${f.key}" placeholder="${esc(f.placeholder||'')}">${esc(v||'')}</textarea>`;
+  }
+  return `<div class="field"><div class="flabel"><b>${f.label}</b>${reqStar}${hint}</div>${inner}</div>`;
+}
+function renderForm(){
+  const t=tpl();
+  document.getElementById('fhEmoji').textContent=t.em;
+  document.getElementById('fhTitle').textContent=t.name;
+  document.getElementById('fhSub').textContent=t.sub;
+  document.getElementById('pvTitle').textContent=t.id+'.md';
+  const fs = t.fields.filter(f=> mode==='guided' ? true : f.core);
+  document.getElementById('fields').innerHTML = fs.map(fieldHTML).join('');
+}
+
+/* ---------- preview ---------- */
+function highlight(text){
+  return esc(text)
+    .replace(/^(#+ .+)$/gm,'<span class="head">$1</span>')
+    .replace(/(\[[^\]]+\])/g,'<span class="ph">$1</span>')
+    .replace(/(```[^\n]*)/g,'<span class="fence">$1</span>');
+}
+let lastPrompt='';
+function render(flash){
+  const p=tpl().build(cur());
+  lastPrompt=p;
+  const body=document.getElementById('pvBody');
+  body.innerHTML=highlight(p);
+  if(flash){body.classList.remove('flash');void body.offsetWidth;body.classList.add('flash');}
+  document.getElementById('pvStat').textContent=p.length.toLocaleString()+' chars \u00b7 ~'+Math.round(p.length/4).toLocaleString()+' tok';
+  persist();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('.tpl'); if(t){activeId=t.dataset.tpl;renderRail();renderForm();render(true);return;}
+  const chip=e.target.closest('.chip');
+  if(chip&&chip.dataset.v!==undefined){cur()[chip.dataset.k]=chip.dataset.v;renderForm();render(true);return;}
+  if(chip&&chip.dataset.custom!==undefined){
+    const inp=document.querySelector(`[data-cin="${chip.dataset.custom}"]`);
+    inp.classList.add('show');inp.focus();
+    chip.parentElement.querySelectorAll('.chip').forEach(c=>{if(c!==chip)c.classList.remove('sel')});chip.classList.add('sel');return;}
+  if(chip&&chip.dataset.mk!==undefined){
+    const k=chip.dataset.mk,val=chip.dataset.mv.replace(/ \u00d7$/,'');
+    const a=A(cur()[k]);const i=a.indexOf(val);if(i>=0)a.splice(i,1);else a.push(val);
+    cur()[k]=a;renderForm();render(true);return;}
+  const mb=e.target.closest('#modeSwitch button');
+  if(mb){mode=mb.dataset.mode;document.querySelectorAll('#modeSwitch button').forEach(b=>b.classList.toggle('on',b===mb));renderForm();render(false);return;}
+  const ld=e.target.closest('[data-load]');if(ld){loadPreset(+ld.dataset.load);return;}
+  const dl=e.target.closest('[data-del]');if(dl){deletePreset(+dl.dataset.del);return;}
+});
+document.addEventListener('input',e=>{
+  const k=e.target.dataset.k; if(k){cur()[k]=e.target.value;render(false);return;}
+  const cin=e.target.dataset.cin; if(cin){cur()[cin]=e.target.value;render(false);return;}
+});
+document.addEventListener('keydown',e=>{
+  const madd=e.target.dataset.madd;
+  if(madd&&e.key==='Enter'){e.preventDefault();const val=e.target.value.trim();if(val){const a=A(cur()[madd]);if(!a.includes(val))a.push(val);cur()[madd]=a;e.target.value='';renderForm();render(true);}}
+});
+document.getElementById('clearBtn').onclick=()=>{values[activeId]={};renderForm();render(true);toast('Fields cleared');};
+document.getElementById('copyBtn').onclick=document.getElementById('copyTopBtn').onclick=()=>{
+  navigator.clipboard.writeText(lastPrompt).then(()=>toast('Copied \u2713')).catch(()=>toast('Copy failed \u2014 select manually'));};
+document.getElementById('downloadBtn').onclick=()=>{
+  const blob=new Blob([lastPrompt],{type:'text/markdown'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=activeId+'-prompt.md';a.click();URL.revokeObjectURL(a.href);toast('Downloaded .md');};
+document.getElementById('saveBtn').onclick=()=>{
+  const name=prompt('Name this preset:',tpl().name);if(!name)return;
+  const list=Store.get('dps_presets',[]);list.unshift({name,tpl:activeId,em:tpl().em,values:JSON.parse(JSON.stringify(cur()))});
+  Store.set('dps_presets',list);renderSaved();toast('Saved \u201c'+name+'\u201d');};
+
+function renderSaved(){
+  const list=Store.get('dps_presets',[]);const el=document.getElementById('savedList');
+  if(!list.length){el.innerHTML='<div class="empty">No saved presets yet \u2014 fill a template and hit Save.</div>';return;}
+  el.innerHTML=list.map((p,i)=>`<div class="saved-item"><span class="stag">${p.em||'\u2022'}</span><span class="nm" data-load="${i}">${esc(p.name)}</span><button class="del" data-del="${i}">delete</button></div>`).join('');
+}
+function loadPreset(i){const list=Store.get('dps_presets',[]);if(!list[i])return;
+  activeId=list[i].tpl;values[activeId]=JSON.parse(JSON.stringify(list[i].values));
+  renderRail();renderForm();render(true);toast('Loaded \u201c'+list[i].name+'\u201d');}
+function deletePreset(i){const list=Store.get('dps_presets',[]);list.splice(i,1);Store.set('dps_presets',list);renderSaved();}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1700);}
+
+/* ---------- init ---------- */
+document.querySelectorAll('#modeSwitch button').forEach(b=>b.classList.toggle('on',b.dataset.mode===mode));
+renderRail();renderForm();renderSaved();render(false);
+</script>
+</body>
+</html>
